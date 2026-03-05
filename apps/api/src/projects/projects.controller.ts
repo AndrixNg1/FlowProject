@@ -9,6 +9,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { ScheduleDto } from './dto/schedule.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
 
@@ -45,7 +46,10 @@ export class ProjectsController {
   }
 
   @Post(':projectId/schedule')
-  schedule(@Param('projectId', new ParseUUIDPipe()) projectId: string) {
-    return this.projectsService.schedule(projectId);
+  schedule(
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() body: ScheduleDto,
+  ) {
+    return this.projectsService.schedule(projectId, body);
   }
 }
