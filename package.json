@@ -1,0 +1,22 @@
+{
+  "name": "FlowProject",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "concurrently -n API,WEB \"pnpm -C apps/api start:dev\" \"pnpm -C apps/web dev\"",
+    "dev:api": "pnpm -C apps/api start:dev",
+    "dev:web": "pnpm -C apps/web dev",
+    "build": "pnpm -C apps/api build && pnpm -C apps/web build",
+    "lint": "pnpm -C apps/api lint && pnpm -C apps/web lint",
+    "test": "pnpm -C apps/api test && pnpm -C apps/web test",
+    "typecheck": "pnpm -C apps/api typecheck && pnpm -C apps/web typecheck",
+    "build:packages": "pnpm -C packages/shared build && pnpm -C packages/scheduler build",
+    "dev:packages": "concurrently -n SHARED,SCHED \"pnpm -C packages/shared dev\" \"pnpm -C packages/scheduler dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
