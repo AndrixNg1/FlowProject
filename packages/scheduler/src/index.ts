@@ -1,10 +1,35 @@
 import type { TaskDTO, DependencyDTO, ID } from "@flow/shared";
 
-// helpers date (MVP: 1 day = 24h, sans calendrier)
-const addDays = (iso: string, days: number) => {
+// ---- Date helpers ----
+// MVP: si skipWeekends=false => jours calendaires (comme avant)
+// si skipWeekends=true => on saute samedi/dimanche
+
+const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+
+const addDaysCalendar = (iso: string, days: number) => {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
   return d.toISOString();
+};
+
+// Ajoute des jours ouvrés : avance/recul jour par jour et ignore samedi/dimanche
+const addDaysWorking = (iso: string, days: number) => {
+  const d = new Date(iso);
+  if (days === 0) return d.toISOString();
+
+  const step = days > 0 ? 1 : -1;
+  let remaining = Math.abs(days);
+  while (remaining > 0) {
+    d.setDate(d.getDate() + step);
+    if (isWeekend(d)) continue;
+    remaining--;
+  }
+  return d.toISOString();
+};
+
+const addDays = (iso: string, days: number, skipWeekends: boolean) => {
+  if (!skipWeekends) return addDaysCalendar(iso, days);
+  return addDaysWorking(iso, days);
 };
 
 const maxDate = (a: string, b: string) => (new Date(a) > new Date(b) ? a : b);
@@ -16,12 +41,23 @@ export class CycleError extends Error {
   }
 }
 
+export type ScheduleOptions = {
+  skipWeekends?: boolean; // default false
+};
+
 /**
  * Recalcule endDate et décale les tâches selon dépendances FS.
  * - FS: to.start >= from.end + lagDays
  * - lance erreur si cycle
+ * - option: skipWeekends (samedi/dimanche)
  */
-export function scheduleTasks(tasks: TaskDTO[], deps: DependencyDTO[]): TaskDTO[] {
+export function scheduleTasks(
+  tasks: TaskDTO[],
+  deps: DependencyDTO[],
+  opts: ScheduleOptions = {}
+): TaskDTO[] {
+  const skipWeekends = opts.skipWeekends ?? false;
+
   const taskById = new Map<ID, TaskDTO>();
   tasks.forEach(t => taskById.set(t.id, { ...t }));
 
@@ -57,12 +93,11 @@ export function scheduleTasks(tasks: TaskDTO[], deps: DependencyDTO[]): TaskDTO[
   // calc endDate baseline
   for (const id of order) {
     const t = taskById.get(id)!;
-    t.endDate = addDays(t.startDate, Math.max(1, t.durationDays));
+    t.endDate = addDays(t.startDate, Math.max(1, t.durationDays), skipWeekends);
     taskById.set(id, t);
   }
 
   // apply constraints FS (simple pass in topo order)
-  // pour chaque tâche, on prend la contrainte max de ses prédécesseurs
   for (const id of order) {
     const current = taskById.get(id)!;
 
@@ -72,13 +107,14 @@ export function scheduleTasks(tasks: TaskDTO[], deps: DependencyDTO[]): TaskDTO[
     for (const dep of incoming) {
       const from = taskById.get(dep.fromTaskId);
       if (!from?.endDate) continue;
-      const required = addDays(from.endDate, dep.lagDays || 0);
+
+      const required = addDays(from.endDate, dep.lagDays || 0, skipWeekends);
       minStart = maxDate(minStart, required);
     }
 
     if (minStart !== current.startDate) {
       current.startDate = minStart;
-      current.endDate = addDays(current.startDate, Math.max(1, current.durationDays));
+      current.endDate = addDays(current.startDate, Math.max(1, current.durationDays), skipWeekends);
       taskById.set(id, current);
     }
   }
