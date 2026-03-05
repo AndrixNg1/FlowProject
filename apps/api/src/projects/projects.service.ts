@@ -8,6 +8,7 @@ import { DependencyDTO, TaskDTO } from '@flow/shared';
 import { Task } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { ScheduleDto } from './dto/schedule.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Injectable()
@@ -53,7 +54,7 @@ export class ProjectsService {
     await this.prisma.project.delete({ where: { id } });
   }
 
-  async schedule(projectId: string): Promise<Task[]> {
+  async schedule(projectId: string, opts?: ScheduleDto): Promise<Task[]> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -88,7 +89,9 @@ export class ProjectsService {
     let scheduledTasks: TaskDTO[];
 
     try {
-      scheduledTasks = scheduleTasks(taskDtos, depDtos);
+      scheduledTasks = scheduleTasks(taskDtos, depDtos, {
+        skipWeekends: opts?.skipWeekends ?? false,
+      });
     } catch (error) {
       if (error instanceof CycleError) {
         throw new BadRequestException(
