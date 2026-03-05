@@ -5,17 +5,17 @@ export type DependencyType = "FS"; // MVP: Finish-to-Start uniquement
 export interface ProjectDTO {
   id: ID;
   name: string;
-  startDate: string; // ISO
+  startDate: string;
 }
 
 export interface TaskDTO {
   id: ID;
   projectId: ID;
   name: string;
-  startDate: string;     // ISO
-  durationDays: number;  // >= 1
-  endDate?: string;      // calculé
-  progress: number;      // 0..100
+  startDate: string;
+  durationDays: number;
+  endDate?: string;
+  progress: number;
 }
 
 export interface DependencyDTO {
@@ -24,5 +24,9 @@ export interface DependencyDTO {
   fromTaskId: ID;
   toTaskId: ID;
   type: DependencyType; // "FS"
-  lagDays: number;      // peut être 0
+  lagDays: number;
+}
+
+export interface CalendarOptions {
+  skipWeekends: boolean;
 }
